@@ -6,4 +6,29 @@
  :itonami.blueprint/governor :market-entry-compliance-governor
  :itonami.blueprint/robotics false
  :itonami.blueprint/required-technologies [:identity :forms :dmn :bpmn :audit-ledger]
- :itonami.blueprint/status :public-oss}
+ :itonami.blueprint/status :public-oss
+ :itonami.blueprint/maturity :implemented
+ :itonami.blueprint/implemented-slice
+ "MarketEntry-LLM sealed into a single :advise node, always routed through
+ an independent Market-Entry Compliance Governor (src/marketentry/
+ governor.cljc) and a 0->3 rollout-phase gate, via a langgraph-clj
+ StateGraph (src/marketentry/operation.cljc) with an append-only audit
+ ledger and a MemStore + DatomicStore (langchain.db via
+ kotoba-lang/langchain-store) SSoT proven to satisfy the same store
+ contract test. Governed operations: :engagement/intake,
+ :jurisdiction/assess, :filing/draft, :filing/submit. Seven governor
+ checks, all HARD (human-unoverridable): spec-basis citation,
+ evidence-checklist completeness, restricted-supplier-list membership
+ (flagship, Law No. 419-Z Art. 1/10), engagement-fee ground-truth
+ recompute, UNP tax-registration verification (conditional on
+ :requires-unp?), unfriendly-state-investor authorization (nationality-
+ CONDITIONAL -- fires only when an engagement is itself flagged
+ :from-designated-unfriendly-state?, narratively sourced from the US
+ State Dept 2025 Belarus Investment Climate Statement, no fabricated
+ decree number), plus double-draft/double-submit prevention. Belarus's
+ own three-way institutional split (MART policy regulator + two
+ separately-authorized e-procurement platform operators + a distinct
+ business-registration authority) is modeled honestly with per-claim
+ confidence levels in src/marketentry/facts.cljc. :filing/draft and
+ :filing/submit never auto-commit at any phase; both the governor's
+ high-stakes actuation gate and the phase gate agree independently."}

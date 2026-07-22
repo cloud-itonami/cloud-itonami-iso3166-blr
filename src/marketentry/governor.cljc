@@ -19,7 +19,7 @@
   human sign-off'; 'a false or fabricated regulatory-requirement claim
   is a HARD hold') names exactly the checks below.
 
-  Six checks, in priority order, ALL HARD violations: a human
+  Seven checks, in priority order, ALL HARD violations: a human
   approver CANNOT override them. The confidence/actuation gate is
   SOFT: it asks a human to look (low confidence / actuation), and the
   human may approve -- but see `marketentry.phase`: for `:stake
@@ -75,7 +75,29 @@
                                        assigns automatically following
                                        state registration (see
                                        `marketentry.facts`).
-    6. Confidence floor / actuation
+    6. Unfriendly-state investor
+       unauthorized                  -- for `:filing/submit`, when the
+                                       engagement declares
+                                       `:from-designated-unfriendly-
+                                       state? true`, INDEPENDENTLY
+                                       check `:special-government-
+                                       permission?`. NATIONALITY-
+                                       CONDITIONAL -- fires ONLY for
+                                       engagements the ground truth
+                                       itself flags as being from a
+                                       designated 'unfriendly state';
+                                       it must NEVER apply to foreign
+                                       investors generically. Grounded
+                                       narratively in the July 2022
+                                       Belarusian government decision
+                                       restricting unfriendly-state
+                                       investor share-sale/
+                                       reorganization/withdrawal
+                                       (State Dept ICS 2025 -- see
+                                       `marketentry.facts` for the
+                                       no-fabricated-instrument-number
+                                       caveat).
+    7. Confidence floor / actuation
        gate                          -- LLM confidence below threshold,
                                        OR the op is `:filing/draft`/
                                        `:filing/submit` (REAL acts)
@@ -165,6 +187,28 @@
         [{:rule :unp-unverified
           :detail (str subject " はUNP(Учётный номер плательщика)確認を要するが未確認 -- 提出提案は進められない")}]))))
 
+(defn- unfriendly-state-investor-violations
+  "For `:filing/submit`, when the engagement declares
+  `:from-designated-unfriendly-state? true`, INDEPENDENTLY verify
+  `:special-government-permission?` is also true -- NATIONALITY-
+  CONDITIONAL, grounded narratively in the July 2022 Belarusian
+  government decision restricting designated-unfriendly-state
+  investors' share-sale/reorganization/withdrawal without special
+  government permission (State Dept ICS 2025, no fabricated decree
+  number -- see `marketentry.facts`). This check is a structural
+  no-op for every engagement that is not itself flagged
+  `:from-designated-unfriendly-state? true` -- it must NEVER apply to
+  foreign investors generically, only to those the engagement's own
+  ground truth names as being from a designated 'unfriendly state'."
+  [{:keys [op subject]} st]
+  (when (= op :filing/submit)
+    (let [e (store/engagement st subject)]
+      (when (and (true? (:from-designated-unfriendly-state? e))
+                 (not (true? (:special-government-permission? e))))
+        [{:rule :unfriendly-state-investor-unauthorized
+          :detail (str subject " は指定「非友好国」投資家に該当し特別政府許可が未取得 "
+                      "(2022年7月ベラルーシ政府決定、State Dept ICS 2025) -- 提出提案は進められない")}]))))
+
 (defn- already-drafted-violations
   "For `:filing/draft`, refuses to draft the SAME engagement twice."
   [{:keys [op subject]} st]
@@ -192,6 +236,7 @@
                            (restricted-supplier-listed-violations request st)
                            (engagement-fee-mismatch-violations request st)
                            (unp-unverified-violations request st)
+                           (unfriendly-state-investor-violations request st)
                            (already-drafted-violations request st)
                            (already-submitted-violations request st)))
         conf (:confidence proposal 0.0)

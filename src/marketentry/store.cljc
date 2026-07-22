@@ -18,10 +18,9 @@
   `:status` value).
 
   The ledger stays append-only on every backend."
-  (:require #?(:clj  [clojure.edn :as edn]
-               :cljs [cljs.reader :as edn])
-            [marketentry.registry :as registry]
-            [langchain.db :as d]))
+  (:require [marketentry.registry :as registry]
+            [langchain.db :as d]
+            [langchain-store.core :as ls]))
 
 (defprotocol Store
   (engagement [s id])
@@ -87,6 +86,23 @@
              :claimed-fee 550000.0
              :on-restricted-supplier-list? false
              :requires-unp? true :unp-verified? true
+             :drafted? false :submitted? false
+             :jurisdiction "BLR" :status :intake}
+    "eng-7" {:id "eng-7" :operator "Unfriendly Holdings LLC" :portal "goszakupki.by"
+             :base-fee 500000 :monthly-rate 30000 :monitoring-months 12
+             :claimed-fee 860000.0
+             :on-restricted-supplier-list? false
+             :requires-unp? true :unp-verified? true
+             :from-designated-unfriendly-state? true
+             :drafted? false :submitted? false
+             :jurisdiction "BLR" :status :intake}
+    "eng-8" {:id "eng-8" :operator "Permitted Unfriendly Holdings LLC" :portal "zakupki.butb.by"
+             :base-fee 500000 :monthly-rate 30000 :monitoring-months 12
+             :claimed-fee 860000.0
+             :on-restricted-supplier-list? false
+             :requires-unp? true :unp-verified? true
+             :from-designated-unfriendly-state? true
+             :special-government-permission? true
              :drafted? false :submitted? false
              :jurisdiction "BLR" :status :intake}}})
 
@@ -177,12 +193,10 @@
    :draft-sequence/jurisdiction     {:db/unique :db.unique/identity}
    :submit-sequence/jurisdiction    {:db/unique :db.unique/identity}})
 
-(defn- enc [v] (pr-str v))
-(defn- dec* [s] (when s (edn/read-string s)))
-
 (defn- engagement->tx [{:keys [id operator portal base-fee monthly-rate monitoring-months claimed-fee
                                on-restricted-supplier-list?
                                requires-unp? unp-verified?
+                               from-designated-unfriendly-state? special-government-permission?
                                drafted? submitted?
                                jurisdiction status draft-number submit-number]}]
   (cond-> {:engagement/id id}
@@ -195,6 +209,8 @@
     (some? on-restricted-supplier-list?)  (assoc :engagement/on-restricted-supplier-list? on-restricted-supplier-list?)
     (some? requires-unp?)                 (assoc :engagement/requires-unp? requires-unp?)
     (some? unp-verified?)                 (assoc :engagement/unp-verified? unp-verified?)
+    (some? from-designated-unfriendly-state?) (assoc :engagement/from-designated-unfriendly-state? from-designated-unfriendly-state?)
+    (some? special-government-permission?)    (assoc :engagement/special-government-permission? special-government-permission?)
     (some? drafted?)                      (assoc :engagement/drafted? drafted?)
     (some? submitted?)                    (assoc :engagement/submitted? submitted?)
     jurisdiction                          (assoc :engagement/jurisdiction jurisdiction)
@@ -207,6 +223,7 @@
    :engagement/monitoring-months :engagement/claimed-fee
    :engagement/on-restricted-supplier-list?
    :engagement/requires-unp? :engagement/unp-verified?
+   :engagement/from-designated-unfriendly-state? :engagement/special-government-permission?
    :engagement/drafted? :engagement/submitted?
    :engagement/jurisdiction :engagement/status :engagement/draft-number :engagement/submit-number])
 
@@ -218,6 +235,8 @@
      :on-restricted-supplier-list? (boolean (:engagement/on-restricted-supplier-list? m))
      :requires-unp? (boolean (:engagement/requires-unp? m))
      :unp-verified? (boolean (:engagement/unp-verified? m))
+     :from-designated-unfriendly-state? (boolean (:engagement/from-designated-unfriendly-state? m))
+     :special-government-permission? (boolean (:engagement/special-government-permission? m))
      :drafted? (boolean (:engagement/drafted? m)) :submitted? (boolean (:engagement/submitted? m))
      :jurisdiction (:engagement/jurisdiction m) :status (:engagement/status m)
      :draft-number (:engagement/draft-number m) :submit-number (:engagement/submit-number m)}))
@@ -231,21 +250,12 @@
          (map #(pull->engagement (d/pull (d/db conn) engagement-pull [:engagement/id %])))
          (sort-by :id)))
   (assessment-of [_ engagement-id]
-    (dec* (d/q '[:find ?p . :in $ ?eid
-                :where [?a :assessment/engagement-id ?eid] [?a :assessment/payload ?p]]
-              (d/db conn) engagement-id)))
-  (ledger [_]
-    (->> (d/q '[:find ?s ?f :where [?e :ledger/seq ?s] [?e :ledger/fact ?f]] (d/db conn))
-         (sort-by first)
-         (mapv (comp dec* second))))
-  (draft-history [_]
-    (->> (d/q '[:find ?s ?r :where [?e :draft-record/seq ?s] [?e :draft-record/record ?r]] (d/db conn))
-         (sort-by first)
-         (mapv (comp dec* second))))
-  (submit-history [_]
-    (->> (d/q '[:find ?s ?r :where [?e :submit-record/seq ?s] [?e :submit-record/record ?r]] (d/db conn))
-         (sort-by first)
-         (mapv (comp dec* second))))
+    (ls/dec* (d/q '[:find ?p . :in $ ?eid
+                   :where [?a :assessment/engagement-id ?eid] [?a :assessment/payload ?p]]
+                 (d/db conn) engagement-id)))
+  (ledger [_] (ls/read-stream conn :ledger/seq :ledger/fact))
+  (draft-history [_] (ls/read-stream conn :draft-record/seq :draft-record/record))
+  (submit-history [_] (ls/read-stream conn :submit-record/seq :submit-record/record))
   (next-draft-sequence [_ jurisdiction]
     (or (d/q '[:find ?n . :in $ ?j
               :where [?e :draft-sequence/jurisdiction ?j] [?e :draft-sequence/next ?n]]
@@ -266,7 +276,7 @@
       (d/transact! conn [(engagement->tx value)])
 
       :assessment/set
-      (d/transact! conn [{:assessment/engagement-id (first path) :assessment/payload (enc payload)}])
+      (d/transact! conn [{:assessment/engagement-id (first path) :assessment/payload (ls/enc payload)}])
 
       :engagement/mark-drafted
       (let [engagement-id (first path)
@@ -276,7 +286,7 @@
         (d/transact! conn
                      [(engagement->tx (assoc engagement-patch :id engagement-id))
                       {:draft-sequence/jurisdiction jurisdiction :draft-sequence/next next-n}
-                      {:draft-record/seq (count (draft-history s)) :draft-record/record (enc (get result "record"))}])
+                      {:draft-record/seq (count (draft-history s)) :draft-record/record (ls/enc (get result "record"))}])
         result)
 
       :engagement/mark-submitted
@@ -287,12 +297,12 @@
         (d/transact! conn
                      [(engagement->tx (assoc engagement-patch :id engagement-id))
                       {:submit-sequence/jurisdiction jurisdiction :submit-sequence/next next-n}
-                      {:submit-record/seq (count (submit-history s)) :submit-record/record (enc (get result "record"))}])
+                      {:submit-record/seq (count (submit-history s)) :submit-record/record (ls/enc (get result "record"))}])
         result)
       nil)
     s)
   (append-ledger! [s fact]
-    (d/transact! conn [{:ledger/seq (count (ledger s)) :ledger/fact (enc fact)}])
+    (ls/append-blob! conn :ledger/seq :ledger/fact (count (ledger s)) fact)
     fact)
   (with-engagements [s engagements]
     (when (seq engagements) (d/transact! conn (mapv engagement->tx (vals engagements)))) s))
