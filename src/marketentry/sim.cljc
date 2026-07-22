@@ -65,6 +65,25 @@
     (println "== filing/submit eng-5 (unp-unverified -> HARD hold) ==")
     (println (exec-op actor "t11" {:op :filing/submit :subject "eng-5"} operator))
 
+    (println "== jurisdiction/assess eng-7 (sets up unfriendly-state-investor-unauthorized) ==")
+    (println (exec-op actor "t14" {:op :jurisdiction/assess :subject "eng-7"} operator))
+    (println (approve! actor "t14"))
+    (println (exec-op actor "t14b" {:op :filing/draft :subject "eng-7"} operator))
+    (println (approve! actor "t14b"))
+    (println "== filing/submit eng-7 (designated-unfriendly-state investor, no permission -> HARD hold) ==")
+    (println (exec-op actor "t15" {:op :filing/submit :subject "eng-7"} operator))
+
+    (println "== jurisdiction/assess eng-8 (unfriendly-state investor WITH permission -> clean) ==")
+    (println (exec-op actor "t16" {:op :jurisdiction/assess :subject "eng-8"} operator))
+    (println (approve! actor "t16"))
+    (println (exec-op actor "t16b" {:op :filing/draft :subject "eng-8"} operator))
+    (println (approve! actor "t16b"))
+    (println "== filing/submit eng-8 (permission on file -> escalates normally, not HARD-held) ==")
+    (let [r (exec-op actor "t17" {:op :filing/submit :subject "eng-8"} operator)]
+      (println r)
+      (println "-- human market-entry operator approves --")
+      (println (approve! actor "t17")))
+
     (println "== filing/draft eng-1 AGAIN (double-draft -> HARD hold) ==")
     (println (exec-op actor "t12" {:op :filing/draft :subject "eng-1"} operator))
 

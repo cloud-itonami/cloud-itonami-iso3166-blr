@@ -100,6 +100,41 @@
       (is (some #{:unp-unverified} (-> (store/ledger db) last :basis)))
       (is (empty? (store/submit-history db))))))
 
+(deftest unfriendly-state-investor-unauthorized-is-held-and-unoverridable
+  (testing "engagement declares :from-designated-unfriendly-state? true with NO :special-government-permission? -> HARD hold (2022-07 Belarusian government decision, State Dept ICS 2025)"
+    (let [[db actor] (fresh)
+          _ (assess! actor "t14pre" "eng-7")
+          _ (draft! actor "t14pre" "eng-7")
+          res (exec-op actor "t14" {:op :filing/submit :subject "eng-7"} operator)]
+      (is (= :hold (get-in res [:state :disposition])) "settles immediately, no interrupt")
+      (is (not= :interrupted (:status res)))
+      (is (some #{:unfriendly-state-investor-unauthorized} (-> (store/ledger db) last :basis)))
+      (is (empty? (store/submit-history db))))))
+
+(deftest unfriendly-state-investor-check-satisfied-once-permission-obtained
+  (testing "SAME designated-unfriendly-state investor as eng-7, but :special-government-permission? true -> the check is satisfied, submit proceeds to the normal human-approval escalation instead of a HARD hold"
+    (let [[db actor] (fresh)
+          _ (assess! actor "t15pre" "eng-8")
+          _ (draft! actor "t15pre" "eng-8")
+          res (exec-op actor "t15" {:op :filing/submit :subject "eng-8"} operator)]
+      (is (= :interrupted (:status res))
+          "clean submit still escalates for ordinary human approval -- not HARD-held once special government permission is on file")
+      (let [r2 (approve! actor "t15")]
+        (is (= :commit (get-in r2 [:state :disposition])))
+        (is (true? (:submitted? (store/engagement db "eng-8"))))))))
+
+(deftest unfriendly-state-investor-check-does-not-apply-to-non-designated-investors
+  (testing "an ordinary engagement never flagged :from-designated-unfriendly-state? is untouched by this rule -- the restriction is NATIONALITY-CONDITIONAL, not a uniform foreign-investor bar"
+    (let [[db actor] (fresh)
+          _ (assess! actor "t16pre" "eng-1")
+          _ (draft! actor "t16pre" "eng-1")
+          res (exec-op actor "t16" {:op :filing/submit :subject "eng-1"} operator)]
+      (is (nil? (:from-designated-unfriendly-state? (store/engagement db "eng-1"))))
+      (is (= :interrupted (:status res))
+          "clean submit still escalates for ordinary human approval -- never a HARD hold from the unfriendly-state rule")
+      (let [r2 (approve! actor "t16")]
+        (is (= :commit (get-in r2 [:state :disposition])))))))
+
 (deftest submit-always-escalates-then-human-decides
   (testing "a clean fully-assessed submit still ALWAYS interrupts for human approval"
     (let [[db actor] (fresh)

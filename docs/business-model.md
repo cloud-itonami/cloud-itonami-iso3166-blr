@@ -38,3 +38,19 @@ confidence breakdown):
   by MART (MODERATE confidence -- English-translation-mirror source,
   cis-legislation.com, not Belarus's own primary text, which was gated
   behind a "demonstration mode" login wall on etalonline.by/pravo.by).
+- **"Unfriendly states" foreign-investor restriction**: a July 2022
+  Belarusian government decision prohibits investors from designated
+  "unfriendly states" (incl. the US) from selling/alienating shares,
+  reorganizing, or withdrawing as participants without special
+  government permission (initially ~190 designated entities, expanded
+  to 1,849 by January 2023); January 2023 added "temporary external
+  management" (up to 18 months) and state-seizure grounds for
+  unfriendly-states-linked property. NO specific decree/law instrument
+  number was independently verified this iteration -- cited
+  narratively via the U.S. State Department's own 2025 Belarus
+  Investment Climate Statement, not a fabricated instrument number.
+  NATIONALITY-CONDITIONAL, not a uniform foreign-investor bar --
+  `marketentry.governor`'s corresponding check fires only when an
+  engagement is itself flagged `:from-designated-unfriendly-state?
+  true`. Source:
+  https://www.state.gov/wp-content/uploads/2025/09/638719_2025-Belarus-Investment-Climate-Statement-Accessible-9.2.2025.pdf

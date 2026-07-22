@@ -122,6 +122,39 @@
     second act is HIGH confidence (belarus.by's own official text),
     while the precise 'УНП' terminology/implementing-article detail is
     MODERATE, not independently primary-source-confirmed.
+  - Nationality-conditional foreign-investor restriction ('unfriendly
+    states'): per the U.S. State Department's own 2025 Belarus
+    Investment Climate Statement (state.gov -- a secondary but
+    authoritative government source, not a Belarusian primary
+    document this catalog fetched itself), a July 2022 Belarusian
+    government decision prohibited investors from designated
+    'unfriendly states' (including the United States) from
+    selling/alienating shares in Belarusian companies, reorganizing
+    them, or withdrawing as participants WITHOUT SPECIAL GOVERNMENT
+    PERMISSION -- initially ~190 designated entities, expanded to
+    1,849 companies by January 2023. A further January 2023 measure
+    added authority for 'temporary external management' (up to 18
+    months) of companies with non-resident shareholders from
+    unfriendly states, plus legal grounds for state seizure of
+    property linked to unfriendly states. Most recent sanctions
+    context the same source notes: US action 9.8.2024, EU action
+    27.3.2025. DELIBERATELY NOT claimed: a specific decree/law
+    instrument number for any of these three measures -- no citable
+    primary instrument number was found this iteration, so
+    `:unfriendly-states-restriction-note` below cites the State
+    Department source NARRATIVELY rather than inventing a decree
+    number. This restriction is NATIONALITY-CONDITIONAL, not a
+    uniform foreign-investor bar: it names the investor's country of
+    origin as the trigger ('investors from unfriendly states'), and
+    is curable by special government permission -- so
+    `marketentry.governor`'s corresponding check must fire ONLY when
+    an engagement's own ground truth declares
+    `:from-designated-unfriendly-state? true`, and must be satisfied
+    once `:special-government-permission? true` is also on file. It
+    must NEVER fire for an engagement that simply has a foreign (but
+    non-designated) investor -- see
+    `unfriendly-states-restriction-spec-basis` and the governor's own
+    test suite.
 
   Coverage is reported HONESTLY (see `coverage`): a jurisdiction not in
   this table has NO spec-basis, full stop -- the advisor must not
@@ -144,7 +177,12 @@
   performed by a DIFFERENT body than BOTH the procurement regulator
   (MART) and the tax/UNP registrar (Ministry of Taxes and Duties), so
   `:corporate-number-*` (the UNP/tax-ID regime) cannot honestly stand
-  in for it the way it does for a single-act jurisdiction."
+  in for it the way it does for a single-act jurisdiction.
+  `:unfriendly-states-restriction-*` grounds the nationality-conditional
+  foreign-investor restriction check
+  (`unfriendly-states-restriction-spec-basis`) -- narratively sourced
+  (State Dept ICS 2025), no fabricated decree number, see the
+  namespace docstring."
   {"BLR" {:name "Belarus"
           :owner-authority "Министерство антимонопольного регулирования и торговли (MART, Ministry of Antimonopoly Regulation and Trade) -- policy regulator, powers per Law № 419-З Art. 10 -- PLUS two separately-authorized electronic-trading-platform operators: РУП «Национальный центр маркетинга и конъюнктуры цен» / RUE 'National Export Promotion Centre' (goszakupki.by, icetrade.by, gias.by) and ОАО «Белорусская универсальная товарная биржа» / OJSC Belarusian Universal Commodity Exchange -- BUTB (zakupki.butb.by), both designated under Law № 419-З Art. 9's Council-of-Ministers platform-designation power"
           :legal-basis "Закон Республики Беларусь «О государственных закупках товаров (работ, услуг)» (Law 'On State Procurement of Goods (Works, Services)'), № 419-З, принят 13.07.2012, существенно изменён Законом № 354-З от 31.01.2024 -- Art. 8 (President designates the authorized state body), Art. 9 (Council of Ministers designates electronic trading platforms), Art. 10 (authorized body's powers/policy role), Art. 1 (restricted-supplier list definition)"
@@ -162,7 +200,9 @@
           :business-registration-provenance "https://www.belarus.by/en/business/companies ; https://www.belarus.by/en/business/legal-requirements ; https://etalonline.by/document/?regnum=pd0900001"
           :restricted-supplier-owner-authority "Министерство антимонопольного регулирования и торговли (MART, Ministry of Antimonopoly Regulation and Trade)"
           :restricted-supplier-legal-basis "Закон № 419-З (13.07.2012) Art. 1 (defines the supplier list temporarily barred from public-procurement participation) + Art. 10 (authorized body maintains it) -- MODERATE confidence, English-translation-mirror source (cis-legislation.com); the precise official Russian designation for this list was not independently confirmed this iteration"
-          :restricted-supplier-provenance "https://cis-legislation.com/document.fwx?rgn=53180 ; https://pravo.by/novosti/analitika/2024/mart/77041/"}
+          :restricted-supplier-provenance "https://cis-legislation.com/document.fwx?rgn=53180 ; https://pravo.by/novosti/analitika/2024/mart/77041/"
+          :unfriendly-states-restriction-note "July 2022 Belarusian government decision: investors from designated 'unfriendly states' (incl. the United States) may not sell/alienate shares in Belarusian companies, reorganize them, or withdraw as participants WITHOUT SPECIAL GOVERNMENT PERMISSION (initially ~190 designated entities, expanded to 1,849 companies by January 2023). January 2023 added: 'temporary external management' (up to 18 months) authority for companies with non-resident shareholders from unfriendly states, and legal grounds for state seizure of unfriendly-states-linked property. No specific decree/law instrument number independently verified this iteration -- cited narratively, not fabricated (see namespace docstring). NATIONALITY-CONDITIONAL: does not apply to foreign investors generally, only to those from designated 'unfriendly states', and is curable by special government permission."
+          :unfriendly-states-restriction-provenance "https://www.state.gov/wp-content/uploads/2025/09/638719_2025-Belarus-Investment-Climate-Statement-Accessible-9.2.2025.pdf"}
    "USA" {:name "United States"
           :owner-authority "U.S. General Services Administration (GSA) / SAM.gov"
           :legal-basis "Federal Acquisition Regulation (FAR); System for Award Management"
@@ -265,3 +305,21 @@
       (select-keys sb [:restricted-supplier-owner-authority
                        :restricted-supplier-legal-basis
                        :restricted-supplier-provenance]))))
+
+(defn unfriendly-states-restriction-spec-basis
+  "Belarus's nationality-conditional restriction on investors from
+  designated 'unfriendly states' (share-sale/reorganization/withdrawal
+  requires special government permission), or nil. Deliberately
+  NARRATIVE, not tied to a fabricated decree/law instrument number --
+  see the namespace docstring's fabrication-avoidance note. This spec-
+  basis existing does NOT mean the restriction applies to every
+  engagement in this jurisdiction: `marketentry.governor`'s
+  corresponding check only fires when the engagement's own ground
+  truth (`marketentry.store`) declares
+  `:from-designated-unfriendly-state? true` -- an ordinary foreign
+  investor is untouched by this rule."
+  [iso3]
+  (when-let [sb (spec-basis iso3)]
+    (when (:unfriendly-states-restriction-note sb)
+      (select-keys sb [:unfriendly-states-restriction-note
+                       :unfriendly-states-restriction-provenance]))))
