@@ -35,8 +35,8 @@ one portal/one regulator like most sibling jurisdictions:
   registration).
 
 See [`docs/business-model.md`](docs/business-model.md) for the full
-citation set and per-claim confidence notes (`src/marketentry/facts.cljc`
-and `src/statute/facts.cljc` carry the same discipline in their own
+citation set and per-claim confidence notes (`src/marketentry/facts.kotoba`
+and `src/statute/facts.kotoba` carry the same discipline in their own
 namespace docstrings).
 
 ## Governor checks (all HARD, human-unoverridable) and their sources
@@ -75,7 +75,7 @@ namespace docstrings).
    check fires ONLY for engagements the ground truth itself flags as
    being from a designated 'unfriendly state' -- it must NEVER apply to
    foreign investors generically (see
-   `test/marketentry/governor_contract_test.clj`). Grounded
+   `test/marketentry/governor_contract_test.kotoba`). Grounded
    narratively in a July 2022 Belarusian government decision requiring
    special government permission before investors from designated
    'unfriendly states' (incl. the US) may sell/alienate shares,
@@ -131,7 +131,7 @@ Alongside the market-entry / statute catalogs, this repo carries a
 `com-junkawasaki/root`) — national dishes, protected products, beverages,
 crafts, festivals and heritage sites for Belarus:
 
-- `src/culture/facts.cljc` — the catalog, source of truth (keyed by
+- `src/culture/facts.kotoba` — the catalog, source of truth (keyed by
   uppercase ISO3, mirroring `statute.facts`).
 - `schema/culture.edn` — DataScript schema.
 - `data/culture-tx.edn` — derived DataScript tx-data (regenerated from
