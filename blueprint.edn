@@ -12,7 +12,7 @@
  "MarketEntry-LLM sealed into a single :advise node, always routed through
  an independent Market-Entry Compliance Governor (src/marketentry/
  governor.cljc) and a 0->3 rollout-phase gate, via a langgraph-clj
- StateGraph (src/marketentry/operation.cljc) with an append-only audit
+ StateGraph (src/marketentry/operation.kotoba) with an append-only audit
  ledger and a MemStore + DatomicStore (langchain.db via
  kotoba-lang/langchain-store) SSoT proven to satisfy the same store
  contract test. Governed operations: :engagement/intake,
@@ -29,7 +29,7 @@
  own three-way institutional split (MART policy regulator + two
  separately-authorized e-procurement platform operators + a distinct
  business-registration authority) is modeled honestly with per-claim
- confidence levels in src/marketentry/facts.cljc. :filing/draft and
+ confidence levels in src/marketentry/facts.kotoba. :filing/draft and
  :filing/submit never auto-commit at any phase; both the governor's
  high-stakes actuation gate and the phase gate agree independently."
  ;; Deployed into the ai-gftd-repository-dispatch namespace (Workers for

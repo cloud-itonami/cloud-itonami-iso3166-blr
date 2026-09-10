@@ -1,8 +1,8 @@
 # Republic of Belarus
 
 Citations verified 2026-07-22 (WebFetch/curl, `pdftotext`/HTML-text
-extraction where needed -- see `src/marketentry/facts.cljc` and
-`src/statute/facts.cljc` namespace docstrings for the full per-claim
+extraction where needed -- see `src/marketentry/facts.kotoba` and
+`src/statute/facts.kotoba` namespace docstrings for the full per-claim
 confidence breakdown):
 
 - **Procurement regulator**: Ministry of Antimonopoly Regulation and
