@@ -8,7 +8,7 @@ Governor, a langgraph-clj StateGraph, and an append-only audit ledger
 for this fleet's canonical structural template).
 
 ```
-clojure -M:dev:test
+kbb -M:dev:test
 ```
 
 ## Three-way institutional split -- the single most important disambiguation
